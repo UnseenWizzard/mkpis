@@ -34,6 +34,7 @@ func main() {
 	repo := flag.String("repo", "", "Repository name")
 	sfrom := flag.String("from", nlw.Format("2006-01-02"), "When the extraction starts")
 	sto := flag.String("to", today.Format("2006-01-02"), "When the extraction ends")
+	includeCreator := flag.Bool("include-creator", false, "If set, information about who created a PR is included")
 	flag.Parse()
 
 	if len(os.Args) < 2 {
@@ -75,7 +76,7 @@ func main() {
 
 	vchClient := ghapi.NewClient(config.Env.GitHubToken)
 	cmdUi := ui.NewCmdUI(vchClient, *owner, *repo, config.Env.DevelopBranch, config.Env.MasterBranch)
-	err = cmdUi.Render(from, to)
+	err = cmdUi.Render(from, to, *includeCreator)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error rendering: %s\n", err.Error())
 		os.Exit(4)

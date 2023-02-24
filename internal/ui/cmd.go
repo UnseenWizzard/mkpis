@@ -52,8 +52,8 @@ func NewCmdUI(client vcs.Client, owner, repo, develBranch, masterBranch string) 
 	}
 }
 
-func (u CmdUI) Render(from, to time.Time) error {
-	rfb, err := u.getFeatureBranchReport(from, to)
+func (u CmdUI) Render(from, to time.Time, includeCreator bool) error {
+	rfb, err := u.getFeatureBranchReport(from, to, includeCreator)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (u CmdUI) PrintPageHeader(from time.Time, to time.Time) {
 	fmt.Println("")
 }
 
-func (u CmdUI) getFeatureBranchReport(from, to time.Time) (string, error) {
+func (u CmdUI) getFeatureBranchReport(from, to time.Time, includeCreator bool) (string, error) {
 	prs, err := u.client.GetMergedPRList(u.owner, u.repo, from, to, u.develBranch)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error gathering information: %s", err.Error())
@@ -95,11 +95,19 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time) (string, error) {
 
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
-	table.SetHeader([]string{"PR", "Commits", "Size", "Time To First Review", "Review time", "Last Review To Merge", "Comments", "PR Lead Time", "Time To Merge"})
+	header := []string{"PR"}
+	if includeCreator {
+		header = append(header, "Creator")
+	}
+	header = append(header, "Commits", "Size", "Time To First Review", "Review time", "Last Review To Merge", "Comments", "PR Lead Time", "Time To Merge")
+	table.SetHeader(header)
 
 	for _, pr := range prs {
-		table.Append([]string{
-			strconv.Itoa(pr.Number),
+		row := []string{strconv.Itoa(pr.Number)}
+		if includeCreator {
+			row = append(row, pr.Creator)
+		}
+		row = append(row,
 			strconv.Itoa(pr.Commits),
 			strconv.Itoa(pr.ChangedLines),
 			DurationFormater(pr.TimeToFirstReview()),
@@ -108,14 +116,17 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time) (string, error) {
 			strconv.Itoa(pr.ReviewComments),
 			DurationFormater(pr.PRLeadTime()),
 			DurationFormater(pr.TimeToMerge()),
-		})
+		)
 
+		table.Append(row)
 	}
 
 	kpi := vcs.NewKPICalculator(prs)
-
-	table.SetFooter([]string{
-		fmt.Sprintf("Count: %d", kpi.CountPR()),
+	footer := []string{fmt.Sprintf("Count: %d", kpi.CountPR())}
+	if includeCreator {
+		footer = append(footer, "-")
+	}
+	footer = append(footer,
 		fmt.Sprintf("AVG: %.2f", kpi.AvgCommits()),
 		fmt.Sprintf("AVG: %.2f", kpi.AvgChangedLines()),
 		AvgDurationFormater(kpi.AvgTimeToFirstReview()),
@@ -124,7 +135,9 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time) (string, error) {
 		fmt.Sprintf("AVG: %.2f", kpi.AvgReviews()),
 		AvgDurationFormater(kpi.AvgPRLeadTime()),
 		AvgDurationFormater(kpi.AvgTimeToMerge()),
-	}) // Add Footer
+	)
+
+	table.SetFooter(footer)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetBorder(false)
 	table.Render() // Send output

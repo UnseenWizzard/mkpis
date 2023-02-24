@@ -8,6 +8,7 @@ type Client interface {
 
 type PR struct {
 	Number         int
+	Creator        string
 	CreatedAt      time.Time
 	MergedAt       time.Time
 	Base           string
