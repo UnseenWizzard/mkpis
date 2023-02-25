@@ -72,6 +72,8 @@ func (cli *Client) getFirstAndLastReviewCommentTime(owner string, repo string, p
 		return time.Time{}, time.Time{}
 	}
 
+	comments = removePendingReviews(comments)
+
 	fComment := comments[0]
 	first = fComment.GetSubmittedAt()
 
@@ -88,6 +90,16 @@ func (cli *Client) getFirstAndLastReviewCommentTime(owner string, repo string, p
 
 	last = lComment.GetSubmittedAt()
 	return
+}
+
+func removePendingReviews(comments []*github.PullRequestReview) []*github.PullRequestReview {
+	var filtered []*github.PullRequestReview
+	for _, c := range comments {
+		if c.SubmittedAt != nil || *c.State != "PENDING" {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
 }
 
 func (cli *Client) GetMergedPRList(owner string, repo string, from time.Time, to time.Time, base string) ([]vcs.PR, error) {
