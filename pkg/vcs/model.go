@@ -4,6 +4,7 @@ import "time"
 
 type Client interface {
 	GetMergedPRList(owner string, repo string, from time.Time, to time.Time, base string) ([]PR, error)
+	GetPRInfo(owner string, repo string, prNum int) (PR, error)
 }
 
 type PR struct {

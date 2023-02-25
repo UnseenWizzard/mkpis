@@ -141,30 +141,38 @@ pagination:
 		opt.Page = resp.NextPage
 	}
 	for _, prNum := range pRNums {
-		pr, _, err := cli.c.PullRequests.Get(cli.ctx, owner, repo, prNum)
+		pr, err := cli.GetPRInfo(owner, repo, prNum)
 		if err != nil {
 			return nil, err
 		}
-
-		log.Printf("Fetching info from PR %d", pr.GetNumber())
-		fc, lc := cli.getFirstAndLastCommitTime(owner, repo, pr.GetNumber())
-		fr, lr := cli.getFirstAndLastReviewCommentTime(owner, repo, pr.GetNumber())
-		pRList = append(pRList, vcs.PR{
-			Number:         pr.GetNumber(),
-			Creator:        pr.GetUser().GetLogin(),
-			CreatedAt:      pr.GetCreatedAt(),
-			MergedAt:       pr.GetMergedAt(),
-			ChangedFiles:   pr.GetChangedFiles(),
-			ChangedLines:   pr.GetDeletions() + pr.GetAdditions(),
-			ReviewComments: pr.GetReviewComments(),
-			Base:           pr.GetBase().GetRef(),
-			Head:           pr.GetHead().GetSHA(),
-			Commits:        pr.GetCommits(),
-			FirstCommitAt:  fc,
-			LastCommitAt:   lc,
-			FirstCommentAt: fr,
-			LastCommentAt:  lr,
-		})
+		pRList = append(pRList, pr)
 	}
 	return pRList, nil
+}
+
+func (cli *Client) GetPRInfo(owner, repo string, prNum int) (vcs.PR, error) {
+	log.Printf("Fetching info for PR %d", prNum)
+	pr, _, err := cli.c.PullRequests.Get(cli.ctx, owner, repo, prNum)
+	if err != nil {
+		return vcs.PR{}, err
+	}
+
+	fc, lc := cli.getFirstAndLastCommitTime(owner, repo, pr.GetNumber())
+	fr, lr := cli.getFirstAndLastReviewCommentTime(owner, repo, pr.GetNumber())
+	return vcs.PR{
+		Number:         pr.GetNumber(),
+		Creator:        pr.GetUser().GetLogin(),
+		CreatedAt:      pr.GetCreatedAt(),
+		MergedAt:       pr.GetMergedAt(),
+		ChangedFiles:   pr.GetChangedFiles(),
+		ChangedLines:   pr.GetDeletions() + pr.GetAdditions(),
+		ReviewComments: pr.GetReviewComments(),
+		Base:           pr.GetBase().GetRef(),
+		Head:           pr.GetHead().GetSHA(),
+		Commits:        pr.GetCommits(),
+		FirstCommitAt:  fc,
+		LastCommitAt:   lc,
+		FirstCommentAt: fr,
+		LastCommentAt:  lr,
+	}, nil
 }

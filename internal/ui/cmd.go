@@ -78,6 +78,39 @@ func (u CmdUI) Render(from, to time.Time, includeCreator bool) error {
 	return nil
 }
 
+func (u CmdUI) RenderSingle(prNum int) error {
+	pr, err := u.client.GetPRInfo(u.owner, u.repo, prNum)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("\033[2J") //clean previous ouput
+	u.PrintRepotHeader(fmt.Sprintf("PR %d Report", prNum))
+
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+	header := []string{"Commits", "Size", "Time To First Review", "Review time", "Last Review To Merge", "Comments", "PR Lead Time", "Time To Merge"}
+	table.SetHeader(header)
+
+	table.Append([]string{
+		strconv.Itoa(pr.Commits),
+		strconv.Itoa(pr.ChangedLines),
+		DurationFormater(pr.TimeToFirstReview()),
+		DurationFormater(pr.TimeToReview()),
+		DurationFormater(pr.LastReviewToMerge()),
+		strconv.Itoa(pr.ReviewComments),
+		DurationFormater(pr.PRLeadTime()),
+		DurationFormater(pr.TimeToMerge()),
+	})
+
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetBorder(false)
+	table.Render() // Send output
+
+	fmt.Println(tableString.String())
+	return nil
+}
+
 func (u CmdUI) PrintRepotHeader(text string) {
 	figure.NewColorFigure(text, "small", "green", true).Print()
 	fmt.Println("")
