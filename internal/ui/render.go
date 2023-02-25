@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -46,24 +45,8 @@ func DurationFormater(d time.Duration) string {
 	return t
 }
 
-type CmdUI struct {
-	client     vcs.Client
-	owner      string
-	repo       string
-	baseBranch string
-}
-
-func NewCmdUI(client vcs.Client, owner, repo, baseBranch string) *CmdUI {
-	return &CmdUI{
-		client:     client,
-		owner:      owner,
-		repo:       repo,
-		baseBranch: baseBranch,
-	}
-}
-
-func (u CmdUI) Render(from, to time.Time, includeCreator bool) error {
-	rfb, err := u.getBranchReport(from, to, includeCreator)
+func Render(prs []vcs.PR, owner, repo string, from, to time.Time, includeCreator bool) error {
+	rfb, err := getBranchReport(prs, from, to, includeCreator)
 	if err != nil {
 		return err
 	}
@@ -72,20 +55,15 @@ func (u CmdUI) Render(from, to time.Time, includeCreator bool) error {
 	myFigure.Blink(1000, 300, 300)
 
 	fmt.Println("\033[2J") //clean previous ouput
-	u.PrintPageHeader(from, to)
-	u.PrintRepotHeader("Pull Request Report")
+	PrintPageHeader(owner, repo, from, to)
+	PrintReportHeader("Pull Request Report")
 	fmt.Println(rfb)
 	return nil
 }
 
-func (u CmdUI) RenderSingle(prNum int) error {
-	pr, err := u.client.GetPRInfo(u.owner, u.repo, prNum)
-	if err != nil {
-		return err
-	}
-
+func RenderSingle(pr vcs.PR) error {
 	fmt.Println("\033[2J") //clean previous ouput
-	u.PrintRepotHeader(fmt.Sprintf("PR %d Report", prNum))
+	PrintReportHeader(fmt.Sprintf("PR %d Report", pr.Number))
 
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
@@ -111,25 +89,19 @@ func (u CmdUI) RenderSingle(prNum int) error {
 	return nil
 }
 
-func (u CmdUI) PrintRepotHeader(text string) {
+func PrintReportHeader(text string) {
 	figure.NewColorFigure(text, "small", "green", true).Print()
 	fmt.Println("")
 }
 
-func (u CmdUI) PrintPageHeader(from time.Time, to time.Time) {
+func PrintPageHeader(owner, repo string, from time.Time, to time.Time) {
 	figure.NewColorFigure("MKPIS", "standard", "red", true).Print()
 	fLayout := "2006-02-01"
-	fmt.Printf("\n Repo: %s/%s (%s-%s)", u.owner, u.repo, from.Format(fLayout), to.Format(fLayout))
+	fmt.Printf("\n Repo: %s/%s (%s-%s)", owner, repo, from.Format(fLayout), to.Format(fLayout))
 	fmt.Println("")
 }
 
-func (u CmdUI) getBranchReport(from, to time.Time, includeCreator bool) (string, error) {
-	prs, err := u.client.GetMergedPRList(u.owner, u.repo, from, to, u.baseBranch)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error gathering information: %s", err.Error())
-		return "", err
-	}
-
+func getBranchReport(prs []vcs.PR, from, to time.Time, includeCreator bool) (string, error) {
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
 	header := []string{"PR"}

@@ -77,16 +77,33 @@ func main() {
 	}
 
 	vchClient := ghapi.NewClient(config.Env.GitHubToken)
-	cmdUi := ui.NewCmdUI(vchClient, *owner, *repo, *base)
 
 	if *pr > 0 {
-		err = cmdUi.RenderSingle(*pr)
+		err = getSingle(*vchClient, *owner, *repo, *pr)
 	} else {
-		err = cmdUi.Render(from, to, *includeCreator)
+		err = getAll(*vchClient, *owner, *repo, *base, from, to, *includeCreator)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error rendering: %s\n", err.Error())
 		os.Exit(4)
 	}
 	os.Exit(0)
+}
+
+func getAll(client ghapi.Client, owner, repo, base string, from, to time.Time, includeCreator bool) error {
+	prs, err := client.GetMergedPRList(owner, repo, from, to, base)
+	if err != nil {
+		return err
+	}
+	err = ui.Render(prs, owner, repo, from, to, includeCreator)
+	return err
+}
+
+func getSingle(client ghapi.Client, owner, repo string, prNum int) error {
+	pr, err := client.GetPRInfo(owner, repo, prNum)
+	if err != nil {
+		return err
+	}
+	err = ui.RenderSingle(pr)
+	return err
 }
