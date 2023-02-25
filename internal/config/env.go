@@ -8,9 +8,7 @@ import (
 )
 
 type configuration struct {
-	DevelopBranch string `env:"DEVELOP_BRANCH_NAME" envDefault:"devel"`
-	MasterBranch  string `env:"MASTER_BRANCH_NAME" envDefault:"master"`
-	GitHubToken   string `env:"GITHUB_TOKEN"`
+	GitHubToken string `env:"GITHUB_TOKEN"`
 }
 
 func loadConfig() *configuration {

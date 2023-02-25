@@ -32,6 +32,7 @@ func main() {
 	log.Println("Starting MKPIS Appplication")
 	owner := flag.String("owner", "", "Owner of the repository")
 	repo := flag.String("repo", "", "Repository name")
+	base := flag.String("base", "master", "Base branch to check for PRs")
 	sfrom := flag.String("from", nlw.Format("2006-01-02"), "When the extraction starts")
 	sto := flag.String("to", today.Format("2006-01-02"), "When the extraction ends")
 	includeCreator := flag.Bool("include-creator", false, "If set, information about who created a PR is included")
@@ -75,7 +76,7 @@ func main() {
 	}
 
 	vchClient := ghapi.NewClient(config.Env.GitHubToken)
-	cmdUi := ui.NewCmdUI(vchClient, *owner, *repo, config.Env.DevelopBranch, config.Env.MasterBranch)
+	cmdUi := ui.NewCmdUI(vchClient, *owner, *repo, *base)
 	err = cmdUi.Render(from, to, *includeCreator)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error rendering: %s\n", err.Error())

@@ -47,42 +47,34 @@ func DurationFormater(d time.Duration) string {
 }
 
 type CmdUI struct {
-	client       vcs.Client
-	owner        string
-	repo         string
-	develBranch  string
-	masterBranch string
+	client     vcs.Client
+	owner      string
+	repo       string
+	baseBranch string
 }
 
-func NewCmdUI(client vcs.Client, owner, repo, develBranch, masterBranch string) *CmdUI {
+func NewCmdUI(client vcs.Client, owner, repo, baseBranch string) *CmdUI {
 	return &CmdUI{
-		client:       client,
-		owner:        owner,
-		repo:         repo,
-		develBranch:  develBranch,
-		masterBranch: masterBranch,
+		client:     client,
+		owner:      owner,
+		repo:       repo,
+		baseBranch: baseBranch,
 	}
 }
 
 func (u CmdUI) Render(from, to time.Time, includeCreator bool) error {
-	rfb, err := u.getFeatureBranchReport(from, to, includeCreator)
-	if err != nil {
-		return err
-	}
-	rrb, err := u.getReleaseBranchReport(from, to)
+	rfb, err := u.getBranchReport(from, to, includeCreator)
 	if err != nil {
 		return err
 	}
 
-	myFigure := figure.NewColorFigure("Printing the reports...", "standard", "white", true)
+	myFigure := figure.NewColorFigure("Printing report...", "standard", "white", true)
 	myFigure.Blink(1000, 300, 300)
 
 	fmt.Println("\033[2J") //clean previous ouput
 	u.PrintPageHeader(from, to)
-	u.PrintRepotHeader("Feature Branch Report")
+	u.PrintRepotHeader("Pull Request Report")
 	fmt.Println(rfb)
-	u.PrintRepotHeader("Release Branch Report")
-	fmt.Println(rrb)
 	return nil
 }
 
@@ -98,8 +90,8 @@ func (u CmdUI) PrintPageHeader(from time.Time, to time.Time) {
 	fmt.Println("")
 }
 
-func (u CmdUI) getFeatureBranchReport(from, to time.Time, includeCreator bool) (string, error) {
-	prs, err := u.client.GetMergedPRList(u.owner, u.repo, from, to, u.develBranch)
+func (u CmdUI) getBranchReport(from, to time.Time, includeCreator bool) (string, error) {
+	prs, err := u.client.GetMergedPRList(u.owner, u.repo, from, to, u.baseBranch)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error gathering information: %s", err.Error())
 		return "", err
@@ -150,43 +142,6 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time, includeCreator bool) (
 	)
 
 	table.SetFooter(footer)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorder(false)
-	table.Render() // Send output
-	return tableString.String(), nil
-}
-
-func (u CmdUI) getReleaseBranchReport(from, to time.Time) (string, error) {
-	prs, err := u.client.GetMergedPRList(u.owner, u.repo, from, to, u.masterBranch)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error gathering information: %s", err.Error())
-		return "", err
-	}
-
-	tableString := &strings.Builder{}
-	table := tablewriter.NewWriter(tableString)
-	table.SetHeader([]string{"PR", "Commits", "Size", "PR Lead Time", "Time To Merge"})
-
-	for _, pr := range prs {
-		table.Append([]string{
-			strconv.Itoa(pr.Number),
-			strconv.Itoa(pr.Commits),
-			strconv.Itoa(pr.ChangedLines),
-			DurationFormater(pr.PRLeadTime()),
-			DurationFormater(pr.TimeToMerge()),
-		})
-
-	}
-
-	kpi := vcs.NewKPICalculator(prs)
-
-	table.SetFooter([]string{
-		fmt.Sprintf("Count: %d", kpi.CountPR()),
-		fmt.Sprintf("AVG: %.2f", kpi.AvgCommits()),
-		fmt.Sprintf("AVG: %.2f", kpi.AvgChangedLines()),
-		AvgDurationFormater(kpi.AvgPRLeadTime()),
-		AvgDurationFormater(kpi.AvgTimeToMerge()),
-	}) // Add Footer
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetBorder(false)
 	table.Render() // Send output
