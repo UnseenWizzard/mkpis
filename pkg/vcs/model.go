@@ -28,7 +28,12 @@ func (pr *PR) PRLeadTime() time.Duration {
 }
 
 func (pr *PR) TimeToMerge() time.Duration {
-	return pr.MergedAt.Sub(pr.FirstCommitAt)
+	firstCommitToMerge := pr.MergedAt.Sub(pr.FirstCommitAt)
+	createToMerge := pr.PRLeadTime()
+	if firstCommitToMerge < createToMerge { // commits probably re-written during review
+		return createToMerge
+	}
+	return firstCommitToMerge
 }
 
 func (pr *PR) TimeToReview() time.Duration {
