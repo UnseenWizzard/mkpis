@@ -21,6 +21,18 @@ func AvgDurationFormater(d time.Duration) string {
 	return t
 }
 
+func FullDurationFormater(avg, median time.Duration) string {
+	aS, err := durationfmt.Format(avg, "%dd %hh %mm")
+	if err != nil {
+		aS = "ERROR"
+	}
+	mS, err := durationfmt.Format(median, "%dd %hh %mm")
+	if err != nil {
+		mS = "ERROR"
+	}
+	return fmt.Sprintf("AVG: %s\nMED: %s", aS, mS)
+}
+
 func DurationFormater(d time.Duration) string {
 
 	if d.Microseconds() == 0 {
@@ -129,12 +141,12 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time, includeCreator bool) (
 	footer = append(footer,
 		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgCommits(), kpi.MedianCommits()),
 		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgChangedLines(), kpi.MedianChangedLines()),
-		AvgDurationFormater(kpi.AvgTimeToFirstReview()),
-		AvgDurationFormater(kpi.AvgTimeToReview()),
-		AvgDurationFormater(kpi.AvgLastReviewToMerge()),
+		FullDurationFormater(kpi.AvgTimeToFirstReview(), kpi.MedianTimeToFirstReview()),
+		FullDurationFormater(kpi.AvgTimeToReview(), kpi.MedianTimeToReview()),
+		FullDurationFormater(kpi.AvgLastReviewToMerge(), kpi.MedianLastReviewToMerge()),
 		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgReviews(), kpi.MedianReviews()),
-		AvgDurationFormater(kpi.AvgPRLeadTime()),
-		AvgDurationFormater(kpi.AvgTimeToMerge()),
+		FullDurationFormater(kpi.AvgPRLeadTime(), kpi.MedianPRLeadTime()),
+		FullDurationFormater(kpi.AvgTimeToMerge(), kpi.MedianTimeToMerge()),
 	)
 
 	table.SetFooter(footer)

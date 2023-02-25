@@ -1,37 +1,21 @@
 package vcs
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/montanaflynn/stats"
 )
-
-func averageDuration(xs []time.Duration) time.Duration {
-	var total float64
-	n := 0
-	for _, v := range xs {
-		if v.Nanoseconds() == 0 {
-			continue
-		}
-		total += v.Seconds()
-		n++
-	}
-	t := fmt.Sprintf("%fs", total/float64(n))
-	d, _ := time.ParseDuration(t)
-	return d
-}
 
 type KPICalculator struct {
 	prs               []PR
 	commits           []float64
 	changes           []float64
 	reviews           []float64
-	timeToMerge       []time.Duration
-	timeToReview      []time.Duration
-	timeToFirstReview []time.Duration
-	lastReviewToMerge []time.Duration
-	pRLeadTime        []time.Duration
+	timeToMerge       []float64
+	timeToReview      []float64
+	timeToFirstReview []float64
+	lastReviewToMerge []float64
+	pRLeadTime        []float64
 }
 
 func NewKPICalculator(prs []PR) *KPICalculator {
@@ -46,11 +30,11 @@ func (kpi *KPICalculator) calc() {
 	for _, pr := range kpi.prs {
 		kpi.commits = append(kpi.commits, float64(pr.Commits))
 		kpi.changes = append(kpi.changes, float64(pr.ChangedLines))
-		kpi.timeToMerge = append(kpi.timeToMerge, pr.TimeToMerge())
-		kpi.timeToReview = append(kpi.timeToReview, pr.TimeToReview())
-		kpi.timeToFirstReview = append(kpi.timeToFirstReview, pr.TimeToFirstReview())
-		kpi.lastReviewToMerge = append(kpi.lastReviewToMerge, pr.LastReviewToMerge())
-		kpi.pRLeadTime = append(kpi.pRLeadTime, pr.PRLeadTime())
+		kpi.timeToMerge = append(kpi.timeToMerge, float64(pr.TimeToMerge()))
+		kpi.timeToReview = append(kpi.timeToReview, float64(pr.TimeToReview()))
+		kpi.timeToFirstReview = append(kpi.timeToFirstReview, float64(pr.TimeToFirstReview()))
+		kpi.lastReviewToMerge = append(kpi.lastReviewToMerge, float64(pr.LastReviewToMerge()))
+		kpi.pRLeadTime = append(kpi.pRLeadTime, float64(pr.PRLeadTime()))
 		kpi.reviews = append(kpi.reviews, float64(pr.ReviewComments))
 
 	}
@@ -82,20 +66,43 @@ func (kpi *KPICalculator) MedianChangedLines() float64 {
 }
 
 func (kpi *KPICalculator) AvgTimeToMerge() time.Duration {
-	return averageDuration(kpi.timeToMerge)
+	return timeStatsWithoutZeroDurations(kpi.timeToMerge, stats.Mean)
+}
+
+func (kpi *KPICalculator) MedianTimeToMerge() time.Duration {
+	return timeStatsWithoutZeroDurations(kpi.timeToMerge, stats.Median)
 }
 
 func (kpi *KPICalculator) AvgTimeToReview() time.Duration {
-	return averageDuration(kpi.timeToReview)
+	return timeStatsWithoutZeroDurations(kpi.timeToReview, stats.Mean)
 }
+
+func (kpi *KPICalculator) MedianTimeToReview() time.Duration {
+	return timeStatsWithoutZeroDurations(kpi.timeToReview, stats.Median)
+}
+
 func (kpi *KPICalculator) AvgTimeToFirstReview() time.Duration {
-	return averageDuration(kpi.timeToFirstReview)
+	return timeStatsWithoutZeroDurations(kpi.timeToFirstReview, stats.Mean)
 }
+
+func (kpi *KPICalculator) MedianTimeToFirstReview() time.Duration {
+	return timeStatsWithoutZeroDurations(kpi.timeToFirstReview, stats.Median)
+}
+
 func (kpi *KPICalculator) AvgLastReviewToMerge() time.Duration {
-	return averageDuration(kpi.lastReviewToMerge)
+	return timeStatsWithoutZeroDurations(kpi.lastReviewToMerge, stats.Mean)
 }
+
+func (kpi *KPICalculator) MedianLastReviewToMerge() time.Duration {
+	return timeStatsWithoutZeroDurations(kpi.lastReviewToMerge, stats.Median)
+}
+
 func (kpi *KPICalculator) AvgPRLeadTime() time.Duration {
-	return averageDuration(kpi.pRLeadTime)
+	return timeStatsWithoutZeroDurations(kpi.pRLeadTime, stats.Mean)
+}
+
+func (kpi *KPICalculator) MedianPRLeadTime() time.Duration {
+	return timeStatsWithoutZeroDurations(kpi.pRLeadTime, stats.Median)
 }
 
 func (kpi *KPICalculator) AvgReviews() float64 {
@@ -106,4 +113,15 @@ func (kpi *KPICalculator) AvgReviews() float64 {
 func (kpi *KPICalculator) MedianReviews() float64 {
 	m, _ := stats.Median(kpi.reviews)
 	return m
+}
+
+func timeStatsWithoutZeroDurations(durs []float64, statFunc func(stats.Float64Data) (float64, error)) time.Duration {
+	filtered := make([]float64, 0, len(durs))
+	for _, d := range durs {
+		if d > 0.0 {
+			filtered = append(filtered, d)
+		}
+	}
+	v, _ := statFunc(filtered)
+	return time.Duration(v)
 }
