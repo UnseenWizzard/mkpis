@@ -11,6 +11,7 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hako/durafmt v0.0.0-20200710122514-c0fb7b4da026
 	github.com/joho/godotenv v1.3.0
+	github.com/montanaflynn/stats v0.7.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.4
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 )

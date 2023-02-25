@@ -127,12 +127,12 @@ func (u CmdUI) getFeatureBranchReport(from, to time.Time, includeCreator bool) (
 		footer = append(footer, "-")
 	}
 	footer = append(footer,
-		fmt.Sprintf("AVG: %.2f", kpi.AvgCommits()),
-		fmt.Sprintf("AVG: %.2f", kpi.AvgChangedLines()),
+		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgCommits(), kpi.MedianCommits()),
+		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgChangedLines(), kpi.MedianChangedLines()),
 		AvgDurationFormater(kpi.AvgTimeToFirstReview()),
 		AvgDurationFormater(kpi.AvgTimeToReview()),
 		AvgDurationFormater(kpi.AvgLastReviewToMerge()),
-		fmt.Sprintf("AVG: %.2f", kpi.AvgReviews()),
+		fmt.Sprintf("AVG: %.2f\nMED: %.2f", kpi.AvgReviews(), kpi.MedianReviews()),
 		AvgDurationFormater(kpi.AvgPRLeadTime()),
 		AvgDurationFormater(kpi.AvgTimeToMerge()),
 	)

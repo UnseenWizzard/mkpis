@@ -3,15 +3,9 @@ package vcs
 import (
 	"fmt"
 	"time"
-)
 
-func averageInt(xs []int) float64 {
-	total := 0.0
-	for _, v := range xs {
-		total += float64(v)
-	}
-	return total / float64(len(xs))
-}
+	"github.com/montanaflynn/stats"
+)
 
 func averageDuration(xs []time.Duration) time.Duration {
 	var total float64
@@ -30,9 +24,9 @@ func averageDuration(xs []time.Duration) time.Duration {
 
 type KPICalculator struct {
 	prs               []PR
-	commits           []int
-	changes           []int
-	reviews           []int
+	commits           []float64
+	changes           []float64
+	reviews           []float64
 	timeToMerge       []time.Duration
 	timeToReview      []time.Duration
 	timeToFirstReview []time.Duration
@@ -50,14 +44,14 @@ func NewKPICalculator(prs []PR) *KPICalculator {
 
 func (kpi *KPICalculator) calc() {
 	for _, pr := range kpi.prs {
-		kpi.commits = append(kpi.commits, pr.Commits)
-		kpi.changes = append(kpi.changes, pr.ChangedLines)
+		kpi.commits = append(kpi.commits, float64(pr.Commits))
+		kpi.changes = append(kpi.changes, float64(pr.ChangedLines))
 		kpi.timeToMerge = append(kpi.timeToMerge, pr.TimeToMerge())
 		kpi.timeToReview = append(kpi.timeToReview, pr.TimeToReview())
 		kpi.timeToFirstReview = append(kpi.timeToFirstReview, pr.TimeToFirstReview())
 		kpi.lastReviewToMerge = append(kpi.lastReviewToMerge, pr.LastReviewToMerge())
 		kpi.pRLeadTime = append(kpi.pRLeadTime, pr.PRLeadTime())
-		kpi.reviews = append(kpi.reviews, pr.ReviewComments)
+		kpi.reviews = append(kpi.reviews, float64(pr.ReviewComments))
 
 	}
 
@@ -68,12 +62,25 @@ func (kpi *KPICalculator) CountPR() int {
 }
 
 func (kpi *KPICalculator) AvgCommits() float64 {
-	return averageInt(kpi.commits)
+	avg, _ := stats.Mean(kpi.commits)
+	return avg
+}
+
+func (kpi *KPICalculator) MedianCommits() float64 {
+	m, _ := stats.Median(kpi.commits)
+	return m
 }
 
 func (kpi *KPICalculator) AvgChangedLines() float64 {
-	return averageInt(kpi.changes)
+	avg, _ := stats.Mean(kpi.changes)
+	return avg
 }
+
+func (kpi *KPICalculator) MedianChangedLines() float64 {
+	m, _ := stats.Median(kpi.changes)
+	return m
+}
+
 func (kpi *KPICalculator) AvgTimeToMerge() time.Duration {
 	return averageDuration(kpi.timeToMerge)
 }
@@ -92,5 +99,11 @@ func (kpi *KPICalculator) AvgPRLeadTime() time.Duration {
 }
 
 func (kpi *KPICalculator) AvgReviews() float64 {
-	return averageInt(kpi.reviews)
+	avg, _ := stats.Mean(kpi.reviews)
+	return avg
+}
+
+func (kpi *KPICalculator) MedianReviews() float64 {
+	m, _ := stats.Median(kpi.reviews)
+	return m
 }
