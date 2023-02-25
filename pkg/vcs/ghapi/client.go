@@ -2,6 +2,7 @@ package ghapi
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -90,6 +91,11 @@ func (cli *Client) getFirstAndLastReviewCommentTime(owner string, repo string, p
 }
 
 func (cli *Client) GetMergedPRList(owner string, repo string, from time.Time, to time.Time, base string) ([]vcs.PR, error) {
+
+	if _, _, err := cli.c.Repositories.GetBranch(cli.ctx, owner, repo, base); err != nil {
+		return nil, fmt.Errorf("failed to get branch %q: %w", base, err)
+	}
+
 	var pRNums []int
 	var pRList []vcs.PR
 	opt := &github.PullRequestListOptions{State: "closed", Base: base /*"devel"*/}
