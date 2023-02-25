@@ -41,7 +41,7 @@ func (pr *PR) TimeToFirstReview() time.Duration {
 	return pr.FirstCommentAt.Sub(pr.CreatedAt)
 }
 func (pr *PR) LastReviewToMerge() time.Duration {
-	if pr.LastCommentAt.IsZero() {
+	if pr.LastCommentAt.IsZero() || pr.LastCommentAt.After(pr.MergedAt) {
 		return 0
 	}
 	return pr.MergedAt.Sub(pr.LastCommentAt)
