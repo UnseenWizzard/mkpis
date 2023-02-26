@@ -8,10 +8,18 @@ import (
 	"time"
 
 	"github.com/jmartin82/mkpis/internal/config"
+	"github.com/jmartin82/mkpis/internal/csv"
+	"github.com/jmartin82/mkpis/internal/json"
 	"github.com/jmartin82/mkpis/internal/ui"
 
+	"github.com/jmartin82/mkpis/pkg/vcs"
 	"github.com/jmartin82/mkpis/pkg/vcs/ghapi"
 )
+
+type renderer struct {
+	renderSingle func(pr vcs.PR) error
+	render       func(prs []vcs.PR, owner, repo string, from, to time.Time, includeCreator bool) error
+}
 
 func printError(err string) {
 	fmt.Fprintf(os.Stderr, "Error: %s\n\n", err)
@@ -37,6 +45,8 @@ func main() {
 	sfrom := flag.String("from", nlw.Format("2006-01-02"), "When the extraction starts")
 	sto := flag.String("to", today.Format("2006-01-02"), "When the extraction ends")
 	includeCreator := flag.Bool("include-creator", false, "If set, information about who created a PR is included")
+	csv := flag.Bool("csv", false, "If set, output export as csv")
+	json := flag.Bool("json", false, "If set, output export as json")
 	flag.Parse()
 
 	if len(os.Args) < 2 {
@@ -76,12 +86,14 @@ func main() {
 		os.Exit(3)
 	}
 
+	renderers := setupRenderers(*csv, *json)
+
 	vchClient := ghapi.NewClient(config.Env.GitHubToken)
 
 	if *pr > 0 {
-		err = getSingle(*vchClient, *owner, *repo, *pr)
+		err = getSingle(*vchClient, *owner, *repo, *pr, renderers)
 	} else {
-		err = getAll(*vchClient, *owner, *repo, *base, from, to, *includeCreator)
+		err = getAll(*vchClient, *owner, *repo, *base, from, to, *includeCreator, renderers)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error rendering: %s\n", err.Error())
@@ -90,20 +102,54 @@ func main() {
 	os.Exit(0)
 }
 
-func getAll(client ghapi.Client, owner, repo, base string, from, to time.Time, includeCreator bool) error {
+func setupRenderers(renderCSV, renderJSON bool) []renderer {
+	var renderers = []renderer{
+		{
+			ui.RenderSingle,
+			ui.Render,
+		},
+	}
+	if renderCSV {
+		renderers = append(renderers,
+			renderer{
+				csv.RenderSingle,
+				csv.Render,
+			})
+	}
+	if renderJSON {
+		renderers = append(renderers,
+			renderer{
+				json.RenderSingle,
+				json.Render,
+			})
+	}
+	return renderers
+}
+
+func getAll(client ghapi.Client, owner, repo, base string, from, to time.Time, includeCreator bool, renderers []renderer) error {
 	prs, err := client.GetMergedPRList(owner, repo, from, to, base)
 	if err != nil {
 		return err
 	}
-	err = ui.Render(prs, owner, repo, from, to, includeCreator)
-	return err
+	for _, r := range renderers {
+		err = r.render(prs, owner, repo, from, to, includeCreator)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func getSingle(client ghapi.Client, owner, repo string, prNum int) error {
+func getSingle(client ghapi.Client, owner, repo string, prNum int, renderers []renderer) error {
 	pr, err := client.GetPRInfo(owner, repo, prNum)
 	if err != nil {
 		return err
 	}
-	err = ui.RenderSingle(pr)
-	return err
+	for _, r := range renderers {
+		err = r.renderSingle(pr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
