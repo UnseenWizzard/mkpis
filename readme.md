@@ -58,8 +58,16 @@ Once it has all the necessary data it builds a report in your terminal, with all
         Owner of the repository
   -repo string
         Repository name
+  -base string
+        Base branch to check PRs for
   -to string
         When the extraction ends (default "2020-08-25")
+  -pr integer
+        Specifc PR to export. If set to/from are ignored
+  -csv
+        Export to CSV file (pr_report.csv or pr_{number}.csv)
+  -json
+        Export to JSON file (pr_report.json or pr_{number}.json)
 </pre>
 
 **Example**
@@ -71,14 +79,6 @@ Once it has all the necessary data it builds a report in your terminal, with all
 To run this application is mandatory to have a GitHub token with the right permission in your environment.
 
 `GITHUB_TOKEN=XXXXXXXXXXXXXXXXXXXXXXXXXXXX`
-
-You can customize the master and development branch names via enviroment variables:
-
-*.env*
-<pre>
-DEVELOP_BRANCH_NAME=devel
-MASTER_BRANCH_NAME=master
-</pre>
 
 **Note:** The application automatically reads *.env* files in the execution path.
  
@@ -140,42 +140,9 @@ MASTER_BRANCH_NAME=master
 `Formula: (pull_request_additions + pull_request_deletions)`
 
 
-### Release Pull Request
-
-<pre>
-+----------+              +------+                  +-------+
-|          |    Opens     |      |  Waits for QA    |       |
-|  Commit  +-------------->  PR  +------------------+ Merge |
-|          |              |      |                  |       |
-+----------+              +------+                  +-------+
-
-+                     Release Lead Time                     +
-+-----------------------------------------------------------+
-+                                                           +
-                                Release Review Lead time
-                          +                                 +
-                          +---------------------------------+
-                          +                                 +
-</pre>
-
-**Release Lead Time:** it measures how much time the first commit in the release request takes to reach the master branch. It's quite common tu assume this metric as *from code to deploy time*.
-
-`Formula: (merged_at  - first_commit_created_at)`
-
-**Release Review Lead Time:** it measures how much time the release review takes, in a lot of organizations it means QA time.
-
-`Formula: (merged_at – opened_at)`
-
-**Relase Size:** it measures the release size in terms of changes it contains.
-
-
-`Formula: (pull_request_additions + pull_request_deletions)`
-
-
 ## Limitations
 
 * Currently this application only work in github repos.
-* This project is useless if your team is working in a Trunk Base development.
 
 
 
